@@ -9,6 +9,8 @@ pinned: false
 
 # CriticLens
 
+Built by [SKMMT](https://skmmt.rootexception.com/) · [View Demo](https://sheikhkmmtahmid-criticlens.hf.space/)
+
 A data science side project that digs into the gap between what critics and audiences think about films. Built because I kept noticing that certain films have wildly different scores on Rotten Tomatoes depending on whether you look at the Tomatometer or the audience score, and I wanted to understand why.
 
 The project started as a static analysis of the Kaggle RT dataset, but I ended up building it into something that actually stays current — new films get picked up automatically, reviews come in daily from The Guardian and the New York Times, and the analysis updates as they do.
