@@ -1,0 +1,10 @@
+venv/
+data/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.git/
+.gitignore
+backend/review_backfill_progress.json
+backend/backfill_progress.json
+backend/training_buffer.json

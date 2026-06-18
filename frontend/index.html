@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CriticLens - Audience Intelligence Divergence Engine</title>
+
+  <link rel="icon" type="image/png" href="favicon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css?v=3" />
+</head>
+<body>
+
+  <!-- sticky navbar -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <img src="Logo.png" alt="CriticLens logo" class="nav-logo" height="36" />
+        <span class="nav-wordmark"><span class="wordmark-critic">Critic</span><span class="wordmark-lens">Lens</span></span>
+      </div>
+      <div class="nav-links">
+        <button class="nav-link active" data-section="overview">Overview</button>
+        <button class="nav-link" data-section="search">Film Search</button>
+        <button class="nav-link" data-section="analyser">Review Analyser</button>
+        <button class="nav-link" data-section="leaderboard">Leaderboard</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- error banner - hidden by default -->
+  <div id="error-banner" class="error-banner hidden">
+    <span id="error-message"></span>
+    <button onclick="dismissError()" class="error-dismiss">x</button>
+  </div>
+
+  <div id="app">
+
+    <!-- SECTION: Overview -->
+    <section id="section-overview" class="section active">
+      <div class="section-header">
+        <h1>Overview</h1>
+        <p class="section-tagline">You've seen a film score 90% with critics but 40% with audiences — CriticLens finds every film where that split happens, ranks them by how extreme the gap is, and shows you exactly what critics and audiences said differently using their own words from real reviews.</p>
+        <p class="section-subtitle">Aggregate divergence statistics across the full dataset</p>
+      </div>
+
+      <div id="overview-stats" class="stat-cards">
+        <!-- filled by JS -->
+        <div class="stat-card skeleton"></div>
+        <div class="stat-card skeleton"></div>
+        <div class="stat-card skeleton"></div>
+        <div class="stat-card skeleton"></div>
+      </div>
+
+      <div class="chart-section">
+        <h2>Genre Divergence</h2>
+        <p class="chart-note">Bars right of centre = critics rate higher. Bars left = audiences rate higher.</p>
+        <canvas id="genre-chart" height="320"></canvas>
+      </div>
+    </section>
+
+    <!-- SECTION: Film Search -->
+    <section id="section-search" class="section">
+      <div class="section-header">
+        <h1>Film Search</h1>
+        <p class="section-subtitle">Search any film to see the critic vs audience divergence breakdown</p>
+      </div>
+
+      <div class="search-container">
+        <div class="search-input-wrap">
+          <input
+            type="text"
+            id="film-search-input"
+            class="search-input"
+            placeholder="Search for a film..."
+            autocomplete="off"
+          />
+          <div id="search-dropdown" class="search-dropdown hidden"></div>
+        </div>
+      </div>
+
+      <div id="film-result" class="film-result hidden"></div>
+      <div id="gap-explanation" class="gap-explanation hidden"></div>
+
+      <!-- browse by release year - separate from the text search above -->
+      <div class="browse-section">
+        <h2 class="browse-heading">Browse by Release Year</h2>
+        <p class="browse-sub">Filter the full dataset by year range. Leave either end blank to browse from the beginning or up to today.</p>
+
+        <div class="browse-controls">
+          <div class="browse-year-group">
+            <label class="browse-label" for="browse-from-year">From</label>
+            <input
+              type="number"
+              id="browse-from-year"
+              class="year-input"
+              placeholder="e.g. 2000"
+              min="1900"
+              max="2030"
+            />
+          </div>
+          <span class="browse-sep" aria-hidden="true">—</span>
+          <div class="browse-year-group">
+            <label class="browse-label" for="browse-to-year">To</label>
+            <input
+              type="number"
+              id="browse-to-year"
+              class="year-input"
+              placeholder="e.g. 2024"
+              min="1900"
+              max="2030"
+            />
+          </div>
+          <div class="browse-sort-group">
+            <label class="browse-label" for="browse-sort">Sort by</label>
+            <select id="browse-sort" class="sort-select">
+              <option value="divergence">Highest Divergence</option>
+              <option value="critics">Tomatometer ↓</option>
+              <option value="audience">Audience Score ↓</option>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+          <button class="btn-primary browse-btn" onclick="doBrowse()">Browse</button>
+        </div>
+
+        <div id="browse-results" class="hidden">
+          <div id="browse-results-info" class="browse-results-info"></div>
+          <div id="browse-grid" class="browse-grid"></div>
+          <div id="browse-pagination" class="browse-pagination hidden">
+            <button class="browse-page-btn" id="browse-prev" onclick="changeBrowsePage(-1)">← Prev</button>
+            <span id="browse-page-info" class="browse-page-info"></span>
+            <button class="browse-page-btn" id="browse-next" onclick="changeBrowsePage(1)">Next →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Review Analyser -->
+    <section id="section-analyser" class="section">
+      <div class="section-header">
+        <h1>Review Analyser</h1>
+        <p class="section-subtitle">Paste any film review to extract aspect-level sentiment</p>
+      </div>
+
+      <div class="analyser-input-area">
+        <textarea
+          id="review-textarea"
+          class="review-textarea"
+          placeholder="Paste a film review here..."
+          rows="8"
+        ></textarea>
+        <button id="analyse-btn" class="btn-primary" onclick="analyseReview()">Analyse Review</button>
+      </div>
+
+      <div id="analyser-results" class="analyser-results hidden"></div>
+
+      <!-- incremental training form - revealed after an analysis run -->
+      <div id="training-block" class="training-block hidden">
+        <div class="training-block-header">
+          <span class="training-block-title">Submit as Training Data</span>
+          <span class="training-block-desc">Label this review to improve the IMDB sentiment models without replacing what they already learned.</span>
+        </div>
+        <div class="training-form">
+          <div class="training-radio-group">
+            <label class="training-radio-label">
+              <input type="radio" name="train-sentiment" value="positive" />
+              <span class="training-radio-text positive">Positive</span>
+            </label>
+            <label class="training-radio-label">
+              <input type="radio" name="train-sentiment" value="negative" />
+              <span class="training-radio-text negative">Negative</span>
+            </label>
+          </div>
+          <button id="train-submit-btn" class="btn-secondary" onclick="submitTraining()">Submit Sample</button>
+        </div>
+        <div id="training-status" class="training-status hidden"></div>
+      </div>
+
+      <!-- model accuracy collapsible -->
+      <div class="model-accuracy-section">
+        <button class="accuracy-toggle-btn" onclick="toggleAccuracyPanel()">
+          Model Performance <span id="accuracy-toggle-icon">+</span>
+        </button>
+        <div id="accuracy-panel" class="accuracy-panel hidden"></div>
+      </div>
+
+    </section>
+
+    <!-- SECTION: Leaderboard -->
+    <section id="section-leaderboard" class="section">
+      <div class="section-header">
+        <h1>Divergence Leaderboard</h1>
+        <p class="section-subtitle">Films with the biggest gap between critic and audience scores</p>
+      </div>
+
+      <div id="leaderboard-content" class="leaderboard-grid">
+        <!-- filled by JS -->
+      </div>
+    </section>
+
+  </div>
+
+  <footer id="site-footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <img src="Logo.png" alt="CriticLens" height="20" />
+        <span class="footer-wordmark">CriticLens</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-tagline">Audience Intelligence Divergence Engine</span>
+      </div>
+      <div class="footer-center">
+        <span class="footer-item">RT Movies &amp; Reviews</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">TMDB</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">OMDb</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">The Guardian</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">NYT</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">IMDB 50k</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">bart-large-mnli</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">FastAPI</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-item">2026</span>
+        <span class="footer-dot">·</span>
+        <span class="footer-item">Built by <a href="http://skmmt.rootexception.com/" target="_blank" rel="noopener" class="footer-link">SKMMT</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Film detail modal — shared by search, browse and leaderboard -->
+  <div id="film-modal" class="film-modal hidden" role="dialog" aria-modal="true">
+    <div class="film-modal-backdrop" onclick="closeFilmModal()"></div>
+    <div class="film-modal-panel">
+      <button class="film-modal-close" onclick="closeFilmModal()" aria-label="Close">&times;</button>
+      <div id="film-modal-film"></div>
+      <div id="film-modal-explain"></div>
+    </div>
+  </div>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>

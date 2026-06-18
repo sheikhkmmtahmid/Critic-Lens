@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+pandas
+transformers==4.44.2
+torch
+pymannkendall
+python-multipart
+httpx
+numpy
+scikit-learn
+aiofiles
+kaggle
+accelerate
+PyMySQL
+apscheduler
+requests

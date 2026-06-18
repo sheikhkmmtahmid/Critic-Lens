@@ -1,0 +1,12 @@
+venv/
+data/
+__pycache__/
+*.pyc
+*.pyo
+*.sql
+isrgrootx1.pem
+models/distilbert-imdb/checkpoint-*/
+backend/review_backfill_progress.json
+backend/backfill_progress.json
+backend/training_buffer.json
+.env

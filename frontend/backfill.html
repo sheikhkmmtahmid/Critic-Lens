@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CriticLens — Backfill Progress</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+    <style>
+        /* ------------------------------------------------------------------ */
+        /* Base                                                                 */
+        /* ------------------------------------------------------------------ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:           #0b0b0f;
+            --glass:        rgba(14, 9, 13, 0.62);
+            --glass-heavy:  rgba(10, 7, 12, 0.80);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-border-gold: rgba(212, 175, 55, 0.22);
+            --surface:      rgba(14, 9, 13, 0.62);
+            --surface2:     rgba(22, 14, 19, 0.68);
+            --border:       rgba(255, 255, 255, 0.08);
+            --text:         #f8f1e7;
+            --text-muted:   #b8a99a;
+            --accent:       #d4af37;
+            --success:      #4ade80;
+            --warning:      #ffb703;
+            --danger:       #e63946;
+            --pending:      #6f6258;
+        }
+
+        body {
+            background:
+                url('Background.png') center / cover fixed no-repeat,
+                #0b0b0f;
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            padding-top: 80px;   /* navbar height + gap */
+            padding-bottom: 64px; /* footer height + gap */
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* ------------------------------------------------------------------ */
+        /* Navbar                                                               */
+        /* ------------------------------------------------------------------ */
+        #navbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            background: rgba(10, 7, 12, 0.78);
+            backdrop-filter: blur(24px) saturate(200%);
+            -webkit-backdrop-filter: blur(24px) saturate(200%);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+            box-shadow: 0 2px 32px rgba(0,0,0,0.55);
+        }
+
+        /* film-strip top accent */
+        #navbar::before {
+            content: '';
+            display: block;
+            height: 3px;
+            background: repeating-linear-gradient(
+                90deg,
+                #d4af37 0px, #d4af37 14px,
+                rgba(33,26,31,0.6) 14px, rgba(33,26,31,0.6) 17px,
+                #b11226 17px, #b11226 31px,
+                rgba(33,26,31,0.6) 31px, rgba(33,26,31,0.6) 34px
+            );
+        }
+
+        .nav-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-wordmark {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 19px;
+            font-weight: 700;
+        }
+
+        .wordmark-critic { color: #f5c542; }
+        .wordmark-lens   { color: #f8f1e7; }
+
+        .nav-page-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            background: rgba(14,9,13,0.5);
+            letter-spacing: 0.2px;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Footer                                                               */
+        /* ------------------------------------------------------------------ */
+        #site-footer {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 100;
+            height: 44px;
+            background: rgba(10, 7, 12, 0.80);
+            backdrop-filter: blur(24px) saturate(200%);
+            -webkit-backdrop-filter: blur(24px) saturate(200%);
+            border-top: 1px solid rgba(212, 175, 55, 0.22);
+            box-shadow: 0 -2px 24px rgba(0,0,0,0.5);
+        }
+
+        .footer-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .footer-left, .footer-right {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .footer-wordmark {
+            font-size: 13px;
+            font-weight: 700;
+            color: #b8a99a;
+        }
+
+        .footer-dot { opacity: 0.4; }
+
+        .footer-link {
+            color: #d4af37;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-link:hover { opacity: 0.75; text-decoration: underline; }
+
+        /* ------------------------------------------------------------------ */
+        /* Layout                                                               */
+        /* ------------------------------------------------------------------ */
+        .page-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 28px 24px;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 13px;
+            max-width: 640px;
+        }
+
+        .cards {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Cards                                                                */
+        /* ------------------------------------------------------------------ */
+        .card {
+            background: rgba(14, 9, 13, 0.62);
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 20px 22px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* DB stats row                                                         */
+        /* ------------------------------------------------------------------ */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-box {
+            background: rgba(22, 14, 19, 0.68);
+            backdrop-filter: blur(12px) saturate(160%);
+            -webkit-backdrop-filter: blur(12px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            text-align: center;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1.1;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Phase cards                                                          */
+        /* ------------------------------------------------------------------ */
+        .phase-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .phase-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 9px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-running  { background: rgba(108,99,255,.25); color: var(--accent); }
+        .badge-complete { background: rgba(34,197,94,.2);   color: var(--success); }
+        .badge-pending  { background: rgba(100,116,139,.2); color: var(--pending); }
+        .badge-error    { background: rgba(239,68,68,.2);   color: var(--danger); }
+
+        /* ------------------------------------------------------------------ */
+        /* Progress bar                                                         */
+        /* ------------------------------------------------------------------ */
+        .progress-wrap {
+            margin: 10px 0 6px;
+        }
+
+        .progress-bar-bg {
+            height: 10px;
+            background: rgba(22, 14, 19, 0.65);
+            border-radius: 99px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.6s ease;
+            min-width: 2px;
+        }
+
+        .fill-running  { background: var(--accent); }
+        .fill-complete { background: var(--success); }
+        .fill-pending  { background: var(--pending); }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Detail rows inside a phase card                                      */
+        /* ------------------------------------------------------------------ */
+        .detail-rows {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-row:last-child { border-bottom: none; }
+
+        .detail-key   { color: var(--text-muted); }
+        .detail-value { font-weight: 600; color: var(--text); }
+
+        /* ------------------------------------------------------------------ */
+        /* Status row at the bottom                                             */
+        /* ------------------------------------------------------------------ */
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            margin-top: 16px;
+        }
+
+        .pulse {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 5px;
+            animation: pulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.3; }
+        }
+
+        .complete-banner {
+            background: rgba(34,197,94,.1);
+            border: 1px solid rgba(34,197,94,.3);
+            color: var(--success);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .warning-banner {
+            background: rgba(245,158,11,.08);
+            border: 1px solid rgba(245,158,11,.25);
+            color: var(--warning);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Spinner for initial load                                             */
+        /* ------------------------------------------------------------------ */
+        .spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 0;
+            color: var(--text-muted);
+            font-size: 13px;
+            gap: 10px;
+        }
+
+        .spinner::before {
+            content: "";
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ------------------------------------------------------------------ */
+        /* Done state — applied by JS when everything is complete               */
+        /* ------------------------------------------------------------------ */
+        .hidden { display: none !important; }
+
+        .page-blurred {
+            filter: blur(4px);
+            pointer-events: none;
+            user-select: none;
+            opacity: 0.5;
+        }
+
+        #done-overlay {
+            position: fixed;
+            top: 63px; left: 0; right: 0;
+            bottom: 44px;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .done-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(28px) saturate(160%) brightness(1.05);
+            -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(1.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-top: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 14px;
+            padding: 40px 44px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow:
+                0 12px 48px rgba(0,0,0,0.55),
+                0 2px 8px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.18),
+                inset 0 -1px 0 rgba(255,255,255,0.04);
+            text-align: center;
+        }
+
+        .done-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(34,197,94,0.12);
+            border: 1px solid rgba(34,197,94,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 22px;
+            color: var(--success);
+        }
+
+        .done-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+
+        .done-stats {
+            display: flex;
+            justify-content: center;
+            gap: 24px 32px;
+            margin: 20px 0 24px;
+            flex-wrap: wrap;
+        }
+
+        .done-stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--success);
+            line-height: 1;
+        }
+
+        .done-stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 5px;
+        }
+
+        .done-body {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.75;
+        }
+
+        .done-body + .done-body { margin-top: 12px; }
+
+        .done-footer-note {
+            margin-top: 22px;
+            font-size: 12px;
+            color: var(--pending);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding-top: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<nav id="navbar">
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">
+            <img src="Logo.png" alt="CriticLens logo" height="32" />
+            <span class="nav-wordmark">
+                <span class="wordmark-critic">Critic</span><span class="wordmark-lens">Lens</span>
+            </span>
+        </a>
+        <span class="nav-page-label">Backfill Progress</span>
+    </div>
+</nav>
+
+<div class="page-wrap">
+    <div class="page-header">
+        <h1>Backfill Progress</h1>
+        <p>
+            Live status for the one-time script that closes the gap between the Kaggle
+            dataset (~Oct 2020) and today. The page refreshes every 5 seconds.
+        </p>
+    </div>
+
+    <div class="cards" id="content">
+        <!-- populated by JS -->
+        <div class="spinner" id="spinner">Loading&hellip;</div>
+    </div>
+</div>
+
+<footer id="site-footer">
+    <div class="footer-inner">
+        <div class="footer-left">
+            <img src="Logo.png" alt="CriticLens" height="18" />
+            <span class="footer-wordmark">CriticLens</span>
+            <span class="footer-dot">·</span>
+            <span>Backfill Progress Monitor</span>
+            <span class="footer-dot">·</span>
+            <span>TMDB Discovery + OMDb Scoring</span>
+        </div>
+        <div class="footer-right">
+            <span>2026</span>
+            <span class="footer-dot">·</span>
+            <span>Built by <a href="http://skmmt.rootexception.com/" target="_blank" rel="noopener" class="footer-link">SKMMT</a></span>
+        </div>
+    </div>
+</footer>
+
+<script>
+    /* ------------------------------------------------------------------ */
+    /* helpers                                                              */
+    /* ------------------------------------------------------------------ */
+
+    // nice comma-separated thousands (e.g. 17430 → "17,430")
+    function fmt(n) {
+        if (n == null || n === undefined) return "—";
+        return Number(n).toLocaleString();
+    }
+
+    function pct(a, b) {
+        if (!b) return 0;
+        return Math.min(100, Math.round((a / b) * 100));
+    }
+
+    function badge(status) {
+        const cls = {
+            running:  "badge-running",
+            complete: "badge-complete",
+            pending:  "badge-pending",
+        }[status] || "badge-error";
+        return `<span class="badge ${cls}">${status || "unknown"}</span>`;
+    }
+
+    function progressBar(value, total, status) {
+        const p    = pct(value, total);
+        const fill = status === "complete" ? "fill-complete"
+                   : status === "running"  ? "fill-running"
+                   :                         "fill-pending";
+        return `
+            <div class="progress-wrap">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill ${fill}" style="width:${p}%"></div>
+                </div>
+                <div class="progress-label">
+                    <span>${fmt(value)} / ${fmt(total)}</span>
+                    <span>${p}%</span>
+                </div>
+            </div>`;
+    }
+
+    function detailRow(key, value) {
+        return `<div class="detail-row">
+            <span class="detail-key">${key}</span>
+            <span class="detail-value">${value}</span>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* render                                                               */
+    /* ------------------------------------------------------------------ */
+
+    function render(data) {
+        const container = document.getElementById("content");
+        const spinner   = document.getElementById("spinner");
+        if (spinner) spinner.remove();
+
+        const dbStats  = data.db_stats        || {};
+        const rs       = data.review_db_stats || {};
+        const fp       = data.file_progress;
+        const rp       = data.review_progress;
+
+        // determine done state
+        const filmsDone   = (dbStats.new_films || 0) > 0 && (dbStats.new_films_unscored || 0) === 0;
+        const reviewsDone = rp && rp.complete === true;
+        const allDone     = filmsDone && reviewsDone;
+
+        if (allDone) {
+            showDoneOverlay(dbStats, rs);
+            return;
+        }
+
+        // ---- DB stats card ----
+        let html = `
+        <div class="card">
+            <div class="card-title">Live Database Counts</div>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(dbStats.total_films)}</div>
+                    <div class="stat-label">Total films</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(dbStats.kaggle_films)}</div>
+                    <div class="stat-label">Kaggle</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(dbStats.new_films)}</div>
+                    <div class="stat-label">New (post-2020)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(dbStats.new_films_scored)}</div>
+                    <div class="stat-label">OMDb scored</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(dbStats.new_films_unscored)}</div>
+                    <div class="stat-label">Awaiting score</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(rs.guardian_reviews)}</div>
+                    <div class="stat-label">Guardian reviews</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(rs.nyt_reviews)}</div>
+                    <div class="stat-label">NYT reviews</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${fmt(rs.films_with_reviews)}</div>
+                    <div class="stat-label">Films with reviews</div>
+                </div>
+            </div>
+        </div>`;
+
+        // ---- film backfill phases ----
+        if (!fp) {
+            const newFilms = dbStats.new_films        || 0;
+            const scored   = dbStats.new_films_scored || 0;
+            const unscored = dbStats.new_films_unscored || 0;
+            const allScored = newFilms > 0 && unscored === 0 && scored > 0;
+            const inPhase2  = newFilms > 0 && scored > 0 && unscored > 0;
+
+            const p1Inferred = {
+                status: newFilms > 0 ? "complete" : "pending",
+                months_done: newFilms > 0 ? 68 : 0,
+                months_total: 68,
+                current_month: newFilms > 0 ? "2026-06" : "—",
+                films_found: newFilms,
+                films_inserted: newFilms,
+            };
+            const p2Inferred = {
+                status:  allScored ? "complete" : inPhase2 ? "running" : "pending",
+                scored:  scored,
+                total:   scored + unscored,
+                skipped: 0,
+            };
+            html += phaseCard1(p1Inferred);
+            html += phaseCard2(p2Inferred);
+        } else {
+            html += phaseCard1(fp.phase_1);
+            html += phaseCard2(fp.phase_2);
+        }
+
+        // ---- review backfill phases ----
+        html += phaseCardReview("Guardian", 3, rp ? rp.guardian : null);
+        html += phaseCardReview("NYT", 4, rp ? rp.nyt : null);
+
+        // ---- status footer ----
+        const lastUpdate = rp ? rp.updated_at : (fp ? fp.updated_at : null);
+        html += `
+        <div class="card" style="padding:14px 18px;">
+            <div class="status-row">
+                <span><span class="pulse"></span>Auto-refreshing every 5 s</span>
+                <span>Last update: ${lastUpdate || "—"}</span>
+            </div>
+        </div>`;
+
+        container.innerHTML = html;
+    }
+
+    function showDoneOverlay(dbStats, rs) {
+        // blur the background content
+        document.querySelector('.page-wrap').classList.add('page-blurred');
+
+        // populate dynamic stats
+        document.getElementById('done-stat-discovered').textContent  = fmt(dbStats.new_films);
+        document.getElementById('done-stat-scored').textContent       = fmt(dbStats.new_films_scored);
+        document.getElementById('done-stat-no-omdb').textContent      = fmt((dbStats.new_films || 0) - (dbStats.new_films_scored || 0));
+        document.getElementById('done-stat-guardian').textContent     = fmt(rs.guardian_reviews);
+        document.getElementById('done-stat-nyt').textContent          = fmt(rs.nyt_reviews);
+
+        // show overlay
+        document.getElementById('done-overlay').classList.remove('hidden');
+
+        // stop polling
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    function phaseCard1(p1) {
+        const status   = p1 ? p1.status        : "pending";
+        const done     = p1 ? p1.months_done   : 0;
+        const total    = p1 ? p1.months_total  : 0;
+        const found    = p1 ? p1.films_found   : 0;
+        const inserted = p1 ? p1.films_inserted: 0;
+        const current  = p1 ? (p1.current_month || "—") : "—";
+        return `
+        <div class="card">
+            <div class="phase-header">
+                <span class="phase-title">Phase 1 — TMDB Discovery</span>
+                ${badge(status)}
+            </div>
+            ${progressBar(done, total || 68, status)}
+            <div class="detail-rows">
+                ${detailRow("Progress",       `${fmt(done)} of ${fmt(total || 68)} months`)}
+                ${detailRow("Current month",  current)}
+                ${detailRow("Films found",    fmt(found))}
+                ${detailRow("Films inserted", fmt(inserted))}
+            </div>
+        </div>`;
+    }
+
+    function phaseCard2(p2) {
+        const status  = p2 ? p2.status  : "pending";
+        const scored  = p2 ? p2.scored  : 0;
+        const total   = p2 ? p2.total   : 0;
+        const skipped = p2 ? p2.skipped : 0;
+
+        let etaNote = "";
+        if (status === "running" && total > scored) {
+            const remaining = total - scored - skipped;
+            if (remaining > 0) {
+                const daysLeft = Math.ceil(remaining / 800);
+                etaNote = ` (~${daysLeft} more day${daysLeft !== 1 ? "s" : ""} at 800/day)`;
+            }
+        }
+
+        const scoreBtn = (status === "running" || status === "pending") ? `
+            <div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <button id="score-now-btn" onclick="scoreNow()"
+                    style="background:var(--accent);color:#fff;border:none;border-radius:6px;
+                           padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;">
+                    Score Now
+                </button>
+                <span id="score-now-msg" style="font-size:12px;color:var(--text-muted);"></span>
+            </div>` : "";
+
+        return `
+        <div class="card">
+            <div class="phase-header">
+                <span class="phase-title">Phase 2 — OMDb Scoring</span>
+                ${badge(status)}
+            </div>
+            ${progressBar(scored, total || 1, status)}
+            <div class="detail-rows">
+                ${detailRow("Scored",    fmt(scored))}
+                ${detailRow("Skipped",   fmt(skipped))}
+                ${detailRow("Total",     total ? fmt(total) : "—")}
+                ${detailRow("Remaining", total ? fmt(Math.max(0, total - scored - skipped)) + etaNote : "—")}
+            </div>
+            ${scoreBtn}
+        </div>`;
+    }
+
+    function phaseCardReview(source, phaseNum, p) {
+        const status   = p ? p.status           : "pending";
+        const done     = p ? p.months_done      : 0;
+        const total    = p ? p.months_total     : 0;
+        const fetched  = p ? p.articles_fetched : 0;
+        const matched  = p ? p.reviews_matched  : 0;
+        const inserted = p ? p.reviews_inserted : 0;
+        const current  = p ? (p.current_month || "—") : "—";
+        const notStarted = !p || status === "pending";
+
+        return `
+        <div class="card">
+            <div class="phase-header">
+                <span class="phase-title">Phase ${phaseNum} — ${source} Reviews</span>
+                ${badge(status)}
+            </div>
+            ${progressBar(done, total || 68, status)}
+            <div class="detail-rows">
+                ${detailRow("Progress",         `${fmt(done)} of ${fmt(total || 68)} months`)}
+                ${detailRow("Current month",    current)}
+                ${detailRow("Articles fetched", fmt(fetched))}
+                ${detailRow("Reviews matched",  fmt(matched))}
+                ${detailRow("Reviews inserted", fmt(inserted))}
+            </div>
+            ${notStarted ? `<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">
+                Run <code>python -m backend.review_backfill</code> to start the historical review import.
+            </p>` : ""}
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* polling                                                              */
+    /* ------------------------------------------------------------------ */
+
+    let pollTimer = null;
+
+    async function poll() {
+        try {
+            const res  = await fetch("/api/admin/backfill-progress");
+            const data = await res.json();
+            render(data);
+        } catch (err) {
+            console.warn("Progress fetch failed:", err);
+        }
+    }
+
+    async function scoreNow() {
+        const btn = document.getElementById("score-now-btn");
+        const msg = document.getElementById("score-now-msg");
+        if (!btn) return;
+        btn.disabled = true;
+        btn.textContent = "Starting...";
+        if (msg) msg.textContent = "";
+        try {
+            await fetch("/api/admin/score-backlog", { method: "POST" });
+            btn.textContent = "Running...";
+            if (msg) msg.textContent = "Batch started — the Scored count will rise as films are processed.";
+        } catch (err) {
+            btn.disabled = false;
+            btn.textContent = "Score Now";
+            if (msg) msg.textContent = "Request failed — is the server running?";
+        }
+    }
+
+    poll();
+    pollTimer = setInterval(poll, 5000);
+</script>
+
+<div id="done-overlay" class="hidden">
+    <div class="done-card">
+        <div class="done-icon">&#10003;</div>
+        <div class="done-title">All Done</div>
+        <div class="done-stats">
+            <div class="done-stat">
+                <div class="done-stat-value" id="done-stat-discovered">—</div>
+                <div class="done-stat-label">Films discovered</div>
+            </div>
+            <div class="done-stat">
+                <div class="done-stat-value" id="done-stat-scored">—</div>
+                <div class="done-stat-label">OMDb scored</div>
+            </div>
+            <div class="done-stat">
+                <div class="done-stat-value" id="done-stat-no-omdb">—</div>
+                <div class="done-stat-label">Not in OMDb</div>
+            </div>
+            <div class="done-stat">
+                <div class="done-stat-value" id="done-stat-guardian">—</div>
+                <div class="done-stat-label">Guardian reviews</div>
+            </div>
+            <div class="done-stat">
+                <div class="done-stat-value" id="done-stat-nyt">—</div>
+                <div class="done-stat-label">NYT reviews</div>
+            </div>
+        </div>
+        <p class="done-body">TMDB discovery pulled in every film released after the Kaggle dataset cutoff. OMDb scored as many as it could. The Guardian and NYT archives were mined for historical critic reviews going back to October 2020, so post-2020 films now have real review text alongside their scores.</p>
+        <p class="done-body">The nightly updater handles everything from here. This page is retired.</p>
+        <div class="done-footer-note">The daily job keeps discovering new releases, refreshing scores, and pulling fresh reviews. There is nothing left to do here.</div>
+    </div>
+</div>
+</body>
+</html>
